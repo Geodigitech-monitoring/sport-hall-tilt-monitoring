@@ -613,7 +613,10 @@
     <div class="table-card" id="tableCard" style="display:none;">
         <div class="table-toolbar">
             <div class="sec-title" style="margin-bottom:0;"><i class="fas fa-table"></i> Tabel Data</div>
-            <input type="text" class="table-search" id="tableSearch" placeholder="Cari berdasarkan waktu...">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <span id="pgInfo" style="font-size:12px;color:var(--muted);"></span>
+                <input type="text" class="table-search" id="tableSearch" placeholder="Cari berdasarkan waktu...">
+            </div>
         </div>
         <div class="tbl-wrap">
             <table>
@@ -636,10 +639,6 @@
                 <tbody id="tableBody"></tbody>
             </table>
         </div>
-        <div class="pagination">
-            <div class="pg-info" id="pgInfo"></div>
-            <div class="pg-btns" id="pgBtns"></div>
-        </div>
     </div>
 
 </div>
@@ -658,8 +657,7 @@ let allData = { s1: [], s2: [] };
 let selectedDate = null;
 let calYear, calMonth;
 let rollChart = null, pitchChart = null;
-let tableRows = [], currentPage = 1;
-const PAGE_SIZE = 20;
+let tableRows = [];
 
 // ── FETCH via gviz (returns proper JSON numbers, avoids decimal-comma issue) ──
 async function fetchSheetData(sheetId) {
@@ -690,7 +688,7 @@ async function fetchSheetData(sheetId) {
 
             rows.push({
                 date:  dateNorm,
-                time:  String(timeRaw || ''),
+                time:  parseGvizTime(timeRaw),
                 pitch: parseFloat(pitchVal),
                 roll:  parseFloat(rollVal)
             });
@@ -700,6 +698,20 @@ async function fetchSheetData(sheetId) {
         console.warn('Fetch error for', sheetId, e);
         return [];
     }
+}
+
+// ── PARSE GVIZ TIME ───────────────────────────────────────────────
+// gviz returns time as Date(1899,11,30,H,M,S) — extract H:M:S
+function parseGvizTime(v) {
+    if (v == null) return '';
+    const s = String(v);
+    // Format: Date(1899,11,30,H,M,S)
+    const m = s.match(/Date\(\d+,\d+,\d+,(\d+),(\d+),(\d+)\)/);
+    if (m) {
+        return `${String(m[1]).padStart(2,'0')}:${String(m[2]).padStart(2,'0')}:${String(m[3]).padStart(2,'0')}`;
+    }
+    // Already a string like "01:00:00"
+    return s;
 }
 
 // ── DATE NORMALIZATION ─────────────────────────────────────────────
@@ -922,25 +934,20 @@ function buildTable(s1, s2) {
     s1.forEach(r => { timeMap[r.time] = timeMap[r.time] || { time:r.time, s1:null, s2:null }; timeMap[r.time].s1 = r; });
     s2.forEach(r => { timeMap[r.time] = timeMap[r.time] || { time:r.time, s1:null, s2:null }; timeMap[r.time].s2 = r; });
     tableRows = Object.values(timeMap).sort((a,b) => a.time.localeCompare(b.time));
-    currentPage = 1;
     renderTable();
 }
 
 function renderTable() {
     const q = document.getElementById('tableSearch').value.toLowerCase();
     const filtered = tableRows.filter(r => r.time.toLowerCase().includes(q));
-    const total = filtered.length;
-    const start = (currentPage-1)*PAGE_SIZE;
-    const end = Math.min(start+PAGE_SIZE, total);
-    const page = filtered.slice(start, end);
 
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
 
-    if (!page.length) {
+    if (!filtered.length) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted);font-size:13px;">Tidak ada data</td></tr>`;
     } else {
-        page.forEach(row => {
+        filtered.forEach(row => {
             const s1 = row.s1, s2 = row.s2;
             const both = s1 && s2;
             const dR = both ? (s1.roll - s2.roll) : null;
@@ -961,32 +968,8 @@ function renderTable() {
         });
     }
 
-    document.getElementById('pgInfo').textContent = total ? `Menampilkan ${start+1}–${end} dari ${total} baris` : '';
-
-    const totalPages = Math.ceil(total/PAGE_SIZE);
-    const btns = document.getElementById('pgBtns');
-    btns.innerHTML = '';
-    if (totalPages > 1) {
-        const prev = makeBtn('← Prev', currentPage===1, () => { currentPage--; renderTable(); });
-        btns.appendChild(prev);
-        const ps = Math.max(1, currentPage-2), pe = Math.min(totalPages, ps+4);
-        for (let p=ps; p<=pe; p++) {
-            const b = makeBtn(p, false, ((pg)=>()=>{ currentPage=pg; renderTable(); })(p));
-            if (p===currentPage) b.classList.add('active');
-            btns.appendChild(b);
-        }
-        const next = makeBtn('Next →', currentPage===totalPages, () => { currentPage++; renderTable(); });
-        btns.appendChild(next);
-    }
-}
-
-function makeBtn(label, disabled, onClick) {
-    const b = document.createElement('button');
-    b.className = 'pg-btn';
-    b.textContent = label;
-    b.disabled = disabled;
-    b.onclick = onClick;
-    return b;
+    document.getElementById('pgInfo').textContent =
+        filtered.length ? `Menampilkan ${filtered.length} baris` : '';
 }
 
 // ── INIT ──────────────────────────────────────────────────────────
@@ -1037,7 +1020,7 @@ document.getElementById('calNext').onclick = () => {
     buildCalendar();
 };
 
-document.getElementById('tableSearch').addEventListener('input', () => { currentPage=1; renderTable(); });
+document.getElementById('tableSearch').addEventListener('input', () => { renderTable(); });
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
