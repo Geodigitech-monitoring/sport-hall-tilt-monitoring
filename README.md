@@ -15,13 +15,11 @@ Sistem pemantauan kemiringan gedung berbasis **ESP32 + Web Dashboard** secara re
 - [Fitur](#-fitur)
 - [Arsitektur Sistem](#-arsitektur-sistem)
 - [Struktur Repository](#-struktur-repository)
-- [Hardware](#-hardware)
-- [Instalasi Firmware](#-instalasi-firmware)
-- [Setup Web Dashboard](#-setup-web-dashboard)
-- [Format Data](#-format-data)
+- [Memulai](#-memulai)
 - [Level Status Peringatan](#-level-status-peringatan)
 - [Jadwal Pengiriman Data](#-jadwal-pengiriman-data)
 - [Informasi Gedung](#-informasi-gedung)
+- [Teknologi](#-teknologi)
 
 ---
 
@@ -63,7 +61,7 @@ Data dikirim secara real-time ke web dashboard melalui protokol MQTT, disimpan k
          ▼
   ┌─────────────┐      ┌──────────────┐
   │Google Sheets│      │  SD Card     │
-  │ (Sensor 1)  │      │ /data_*.csv  │
+  │ (Sensor 1)  │------│ /data_*.csv  │
   └─────────────┘      │(setiap 30min)│
                        └──────────────┘
 
@@ -86,229 +84,36 @@ Data dikirim secara real-time ke web dashboard melalui protokol MQTT, disimpan k
 ```
 sport-hall-tilt-monitoring/
 │
-├── FINAL_PROJECT_ESP1.ino   # Firmware ESP32 #1 — titik ukur (MPU9250 + SD Card)
-├── FINAL_PROJECT_ESP2.ino   # Firmware ESP32 #2 — titik referensi (MPU6050)
+├── README.md                          # Ringkasan proyek (file ini)
 │
-├── index.html               # Web dashboard real-time
-├── historis.html            # Halaman grafik & tabel data historis
-├── script.js                # Logika MQTT, update UI, dan level alert
-├── style.css                # Stylesheet responsif
-└── unika.png                # Logo Universitas Katolik Soegijapranata
+├── firmware/
+│   ├── README.md                      # Hardware, instalasi firmware, credential HiveMQ
+│   ├── FINAL_PROJECT_ESP1/
+│   │   └── FINAL_PROJECT_ESP1.ino     # ESP32 #1 — titik ukur (MPU9250 + SD Card)
+│   └── FINAL_PROJECT_ESP2/
+│       └── FINAL_PROJECT_ESP2.ino     # ESP32 #2 — titik referensi (MPU6050)
+│
+└── web/
+    ├── README.md                      # Setup dashboard & Google Sheets
+    ├── index.html                     # Dashboard real-time
+    ├── historis.html                  # Grafik & tabel data historis
+    ├── script.js                      # Logika MQTT, update UI, level alert
+    ├── style.css                      # Stylesheet responsif
+    └── unika.png                      # Logo Universitas Katolik Soegijapranata
 ```
 
-| File | Deskripsi |
-|---|---|
-| `FINAL_PROJECT_ESP1.ino` | Firmware sensor utama: baca MPU9250, publish MQTT setiap 500ms, simpan ke Google Sheets tiap jam, simpan ke SD Card tiap 30 menit, sediakan server HTTP + WebSocket lokal |
-| `FINAL_PROJECT_ESP2.ino` | Firmware sensor referensi: baca MPU6050 (dengan kalibrasi gyro otomatis), publish MQTT setiap 500ms, kirim ke Google Sheets tiap jam |
-| `index.html` | Dashboard utama yang menampilkan data real-time, status koneksi, dan banner peringatan |
-| `historis.html` | Halaman data historis dengan kalender, grafik Chart.js, dan tabel delta antar sensor |
-| `script.js` | Mengelola koneksi MQTT dua broker, parsing JSON, dan logika 4 level alert |
-| `style.css` | Desain responsif berbasis CSS variables dengan animasi status dan layout dua kolom |
+| Folder | Isi | Dokumentasi |
+|---|---|---|
+| `firmware/` | Kode ESP32 (pembacaan sensor, MQTT, Google Sheets, SD Card) | [firmware/README.md](firmware/README.md) |
+| `web/` | Web dashboard real-time dan historis | [web/README.md](web/README.md) |
 
 ---
 
-## 🔧 Hardware
+## 🚀 Memulai
 
-### ESP32 #1 — Titik Ukur
-
-| Komponen | Detail |
-|---|---|
-| **Mikrokontroler** | ESP32 (DevKit) |
-| **Sensor IMU** | MPU9250 (I²C, alamat `0x68`) |
-| **Penyimpanan lokal** | Modul SD Card (SPI) |
-| **Koneksi I²C** | SDA → GPIO 21, SCL → GPIO 22 |
-| **Koneksi SD Card** | SCK → 14, MISO → 19, MOSI → 23, CS → 27 |
-
-**Parameter kalibrasi MPU9250:**
-```
-Offset X: +0.001  |  Scale X: 0.997
-Offset Y: -0.025  |  Scale Y: 0.999
-Offset Z: -0.108  |  Scale Z: 1.018
-```
-
-### ESP32 #2 — Titik Referensi
-
-| Komponen | Detail |
-|---|---|
-| **Mikrokontroler** | ESP32 (DevKit) |
-| **Sensor IMU** | MPU6050 (I²C, alamat default) |
-| **Koneksi I²C** | SDA → GPIO 21, SCL → GPIO 22 |
-
-**Parameter kalibrasi MPU6050:**
-```
-Offset X: +0.0154  |  Scale X: 0.9955
-Offset Y: -0.0107  |  Scale Y: 0.9989
-Offset Z: -0.0141  |  Scale Z: 1.0094
-```
-> Sensor 2 juga melakukan **kalibrasi gyro otomatis** saat startup (`calcGyroOffsets`) — pastikan perangkat tidak bergerak selama proses ini.
-
----
-
-## 🚀 Instalasi Firmware
-
-### Prasyarat
-
-Pastikan library berikut sudah terinstal di Arduino IDE:
-
-**Untuk ESP1 (`FINAL_PROJECT_ESP1.ino`):**
-- `MPU9250` (by hideakitai)
-- `PubSubClient`
-- `WebSocketsServer` (by Links2004)
-- `WiFiClientSecure` (bawaan ESP32)
-
-**Untuk ESP2 (`FINAL_PROJECT_ESP2.ino`):**
-- `MPU6050_tockn`
-- `PubSubClient`
-- `WebSocketsServer` (by Links2004)
-- `WiFiClientSecure` (bawaan ESP32)
-
-### Langkah-langkah
-
-**1. Clone repository**
-```bash
-git clone https://github.com/Geodigitech-monitoring/sport-hall-tilt-monitoring.git
-```
-
-**2. Konfigurasi WiFi**
-
-Buka file `.ino` dan sesuaikan nama jaringan:
-```cpp
-const char* ssid     = "Sporthall";  // Ganti dengan SSID WiFi kamu
-const char* password = "";            // Isi jika ada password
-```
-
-**3. Konfigurasi MQTT**
-
-Ganti dengan credential HiveMQ Cloud milikmu:
-```cpp
-const char* mqtt_server   = "YOUR_CLUSTER.s1.eu.hivemq.cloud";
-const int   mqtt_port     = 8883;
-const char* mqtt_username = "YOUR_USERNAME";
-const char* mqtt_password = "YOUR_PASSWORD";
-```
-
-> ⚠️ **Jangan hardcode credential di kode yang dipush ke repository publik.** Pertimbangkan menggunakan file konfigurasi terpisah yang masuk ke `.gitignore`.
-
-#### 🔑 Cara Mendapatkan Credential HiveMQ Cloud
-
-Keempat nilai di atas diperoleh dari akun HiveMQ Cloud (gratis, paket *Serverless*):
-
-1. **Daftar / login** di [console.hivemq.cloud](https://console.hivemq.cloud/).
-2. **Buat cluster** — klik **Create New Cluster**, pilih paket **Serverless (Free)**, lalu pilih region (misalnya `eu`). Tunggu hingga status cluster menjadi *Running*.
-3. **Ambil `mqtt_server` dan `mqtt_port`** — klik **Manage Cluster**, lalu lihat bagian **Overview**:
-
-   | Info di HiveMQ | Isi ke kode | Keterangan |
-   |---|---|---|
-   | **Cluster URL** (`xxxxxxxx.s1.eu.hivemq.cloud`) | `mqtt_server` | Salin tanpa `mqtt://` / `wss://` |
-   | **TLS MQTT Port** (`8883`) | `mqtt_port` | Dipakai oleh ESP32 |
-   | **TLS WebSocket Port** (`8884`) | `mqtt_port` di `script.js` | Dipakai oleh web dashboard |
-
-4. **Buat `mqtt_username` dan `mqtt_password`** — buka tab **Access Management** → **Add Credentials**, isi username dan password sesuai keinginan, pilih permission **Publish and Subscribe**, lalu klik **Save**.
-   > ⚠️ Password hanya ditampilkan saat dibuat. Simpan di tempat aman; jika lupa, hapus credential lalu buat ulang.
-5. **Credential untuk web dashboard** — di halaman **Overview** cluster, buka tab **Web Client**, lalu klik **Connect**. HiveMQ akan membuat credential otomatis berformat `hivemq.webclient.<angka>`. Gunakan ini (atau buat credential terpisah dengan permission **Subscribe Only**) untuk `username` dan `password` di `MQTT_CONFIGS` pada `script.js`.
-
-> 💡 Proyek ini memakai **dua cluster** terpisah (satu per sensor). Ulangi langkah 2–5 untuk ESP2, lalu isi `MQTT_CONFIGS.s1` dan `MQTT_CONFIGS.s2` di `script.js` dengan hostname masing-masing cluster.
-
-Setelah terisi, ESP32 akan terhubung ke broker lewat port `8883` (TLS) dan dashboard lewat port `8884` (WebSocket Secure) dengan topic yang sama: `building-tilt/sensor-data`.
-
-**4. Upload file web ke SPIFFS (khusus ESP1)**
-
-File `index.html`, `script.js`, `style.css`, dan `unika.png` perlu diunggah ke memori SPIFFS ESP32 agar bisa diakses via IP lokal.
-
-Di Arduino IDE: **Tools → ESP32 Sketch Data Upload**
-
-> Jika menu tersebut tidak muncul, install plugin [arduino-esp32fs-plugin](https://github.com/me-no-dev/arduino-esp32fs-plugin) dan letakkan file web di folder `data/` di dalam direktori sketch.
-
-**5. Flash firmware**
-
-- Pilih board: **ESP32 Dev Module**
-- Upload speed: `921600`
-- Flash masing-masing `.ino` ke ESP32 yang sesuai
-
-**6. Verifikasi via Serial Monitor**
-
-Buka Serial Monitor (115200 baud). Output yang diharapkan:
-```
-SD Card initialized successfully.
-MPU9250 initialized
-WiFi Connected
-IP Address: 192.168.x.x
-Time synchronized
-connected to HiveMQ Cloud!
-Roll: 0.12 deg | Pitch: -0.34 deg
-Published to HiveMQ: {"roll":0.12,"pitch":-0.34}
-```
-
----
-
-## 🌐 Setup Web Dashboard
-
-Dashboard dapat diakses dengan dua cara:
-
-### Cara A — Hosting statis (GitHub Pages / Netlify)
-
-1. Buka `script.js` dan pastikan konfigurasi MQTT sudah benar
-2. Deploy folder proyek ke hosting statis
-3. Akses via URL hosting
-
-### Cara B — Akses langsung dari ESP32
-
-Setelah firmware berhasil diflash dan SPIFFS terisi:
-1. Hubungkan device ke jaringan WiFi yang sama dengan ESP32
-2. Buka Serial Monitor untuk melihat IP address ESP32
-3. Akses `http://192.168.x.x` di browser
-
-### Konfigurasi Google Sheets untuk historis.html
-
-1. Buka `historis.html` dan ganti Sheet ID:
-```javascript
-const SHEET_IDS = {
-    s1: 'YOUR_GOOGLE_SHEET_ID_SENSOR_1',
-    s2: 'YOUR_GOOGLE_SHEET_ID_SENSOR_2'
-};
-```
-
-2. Pastikan Google Sheet sudah dipublikasikan: **File → Share → Publish to web**
-
-3. Format kolom yang diharapkan:
-
-| Kolom A | Kolom B | Kolom C | Kolom D | Kolom E |
-|---|---|---|---|---|
-| Tanggal | Waktu | Pitch (°) | Roll (°) | Rata-rata (°) |
-
----
-
-## 📡 Format Data
-
-### Payload MQTT (JSON)
-
-Dikirim ke topic `building-tilt/sensor-data` setiap 500ms:
-
-```json
-{
-  "roll": -0.45,
-  "pitch": 1.23
-}
-```
-
-### Format CSV SD Card (ESP1)
-
-Disimpan sebagai `/data_YYYY-MM-DD.csv` dengan struktur:
-
-```
-Tanggal,Waktu,Roll (derajat),Pitch (derajat),Rata-rata (derajat)
-2026-05-23,08:00:00,0.12,-0.34,0.23
-2026-05-23,08:30:00,0.15,-0.31,0.23
-```
-
-### Endpoint HTTP Lokal (ESP1)
-
-| Endpoint | Deskripsi |
-|---|---|
-| `GET /` | Dashboard utama |
-| `GET /mqtt-status` | Status koneksi MQTT (JSON) |
-| `GET /download-sd` | Daftar file CSV di SD Card |
-| `GET /download-sd/{filename}` | Download file CSV tertentu |
+1. **Siapkan broker MQTT** dan dapatkan credential HiveMQ Cloud → [firmware/README.md](firmware/README.md#-cara-mendapatkan-credential-hivemq-cloud)
+2. **Flash firmware** ke kedua ESP32 → [firmware/README.md](firmware/README.md#-instalasi-firmware)
+3. **Jalankan web dashboard** → [web/README.md](web/README.md)
 
 ---
 
