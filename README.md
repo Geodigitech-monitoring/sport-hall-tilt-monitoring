@@ -184,4 +184,44 @@ Waktu disinkronkan via NTP ke zona **UTC+7 (WIB)** menggunakan server `pool.ntp.
 
 ---
 
+## 🤝 Catatan untuk Tim Pengembang Berikutnya
+
+**Status proyek:** pengembangan tahap awal selesai (kontrak berakhir); sistem masih menyala di gedung dan akan dilanjutkan oleh tim berikutnya.
+
+### Serah terima akun dan layanan
+
+Layanan berikut dibuat dengan akun pengembang sebelumnya dan **perlu dipindahkan ke akun milik pihak yang melanjutkan** (tim atau institusi, bukan akun pribadi):
+
+| Layanan | Yang perlu dilakukan |
+|---|---|
+| **GitHub** (organisasi dan repository) | Pastikan pihak yang melanjutkan menjadi *owner* organisasi, lalu akun pengembang sebelumnya diturunkan atau dikeluarkan. |
+| **HiveMQ Cloud** (broker MQTT) | Buat akun dan cluster baru milik pihak yang melanjutkan. Hostname berubah, sehingga firmware kedua ESP32 dan konfigurasi web ikut diperbarui. |
+| **Google Sheets dan Apps Script** | Pindahkan kepemilikan file (Share → ubah pemilik) lalu *deploy* ulang Apps Script dari akun baru. URL deployment kemungkinan berubah, sehingga `GAS_URL` di firmware ikut diganti. |
+
+### Hosting web dashboard
+
+Disarankan **tidak memakai GitHub Pages** untuk jangka panjang, tetapi hosting milik sendiri atau sewa di provider lain. Dashboard hanya berisi file statis, sehingga VPS, hosting biasa, atau layanan hosting statis dapat dipakai. Catatan:
+
+- Wajib **HTTPS**, karena dashboard terhubung ke broker lewat `wss`.
+- Workflow `.github/workflows/pages.yml` perlu diganti atau dinonaktifkan sesuai cara deploy yang baru.
+- Dashboard lokal yang disajikan dari ESP32 (SPIFFS) tidak terpengaruh.
+- Situs GitHub Pages bisa diakses publik meskipun repository-nya privat (kecuali paket tertentu), sehingga isi folder `web/` perlu diperlakukan sebagai terlihat oleh publik.
+
+### Urutan migrasi yang aman
+
+1. Pihak yang melanjutkan menyiapkan akun HiveMQ, Google (Sheets dan Apps Script), dan hosting.
+2. Buat cluster, kredensial, dan deployment baru; siapkan firmware dan konfigurasi web dengan nilai baru.
+3. Flash ulang kedua ESP32, deploy web di hosting baru, lalu pastikan data masuk ke dashboard dan Google Sheets.
+4. Setelah berjalan normal, nonaktifkan cluster, deployment, dan situs lama, lalu selesaikan transfer akses repository.
+
+Mencabut layanan lama sebelum langkah 3 selesai akan memutus data dari perangkat yang sedang terpasang.
+
+### Keamanan dan perbaikan lanjutan
+
+- Kredensial layanan (broker MQTT, Google Apps Script) perlu dibuat baru saat migrasi dan dipisahkan hak aksesnya: dashboard hanya *subscribe*, perangkat hanya *publish* pada topiknya. Jangan menaruh secret di kode yang dikirim ke browser atau di-commit ke repository.
+- Pertimbangan teknis lain: reconnect MQTT yang tidak memblokir, watchdog, verifikasi sertifikat TLS, dan logika peringatan yang memakai selisih Sensor 1 dan Sensor 2.
+- Rincian teknis temuan keamanan disampaikan terpisah kepada pemilik repository.
+
+---
+
 *Sistem Pemantauan Pergeseran Gedung Sport Hall © 2024 — Universitas Katolik Soegijapranata*
