@@ -186,7 +186,7 @@ Waktu disinkronkan via NTP ke zona **UTC+7 (WIB)** menggunakan server `pool.ntp.
 
 ## 🤝 Catatan untuk Tim Pengembang Berikutnya
 
-**Status proyek:** pengembangan tahap awal selesai (kontrak berakhir); sistem masih menyala di gedung dan akan dilanjutkan oleh tim berikutnya.
+**Status proyek:** pengembangan tahap awal selesai; sistem masih menyala di gedung dan akan dilanjutkan oleh tim berikutnya.
 
 ### Serah terima akun dan layanan
 
