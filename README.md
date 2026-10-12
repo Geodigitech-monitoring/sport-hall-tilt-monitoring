@@ -86,12 +86,18 @@ sport-hall-tilt-monitoring/
 │
 ├── README.md                          # Ringkasan proyek (file ini)
 │
+├── .github/workflows/
+│   └── pages.yml                      # Deploy otomatis folder web/ ke GitHub Pages
+│
 ├── firmware/
 │   ├── README.md                      # Hardware, instalasi firmware, credential HiveMQ
-│   ├── FINAL_PROJECT_ESP1/
-│   │   └── FINAL_PROJECT_ESP1.ino     # ESP32 #1 — titik ukur (MPU9250 + SD Card)
-│   └── FINAL_PROJECT_ESP2/
-│       └── FINAL_PROJECT_ESP2.ino     # ESP32 #2 — titik referensi (MPU6050)
+│   ├── FINAL_PROJECT_ESP1.ino         # ESP32 #1 — titik ukur (MPU9250 + SD Card)
+│   └── FINAL_PROJECT_ESP2.ino         # ESP32 #2 — titik referensi (MPU6050)
+│
+├── gsheet/
+│   ├── README.md                      # Setup Google Sheets & Apps Script
+│   ├── sensor1.gs                     # Apps Script Sensor 1 (arsip data per jam)
+│   └── sensor2.gs                     # Apps Script Sensor 2 (arsip data per jam)
 │
 └── web/
     ├── README.md                      # Setup dashboard & Google Sheets
@@ -102,9 +108,12 @@ sport-hall-tilt-monitoring/
     └── unika.png                      # Logo Universitas Katolik Soegijapranata
 ```
 
+> **Catatan Arduino IDE:** Arduino IDE mengharuskan file `.ino` berada di folder dengan nama yang sama. Saat membuka `FINAL_PROJECT_ESP1.ino` atau `FINAL_PROJECT_ESP2.ino`, klik **OK** ketika IDE menawarkan membuat folder sketch, atau buat sendiri folder `FINAL_PROJECT_ESP1/` dan `FINAL_PROJECT_ESP2/` lalu pindahkan masing-masing file ke dalamnya.
+
 | Folder | Isi | Dokumentasi |
 |---|---|---|
 | `firmware/` | Kode ESP32 (pembacaan sensor, MQTT, Google Sheets, SD Card) | [firmware/README.md](firmware/README.md) |
+| `gsheet/` | Apps Script untuk arsip data per jam ke Google Sheets | [gsheet/README.md](gsheet/README.md) |
 | `web/` | Web dashboard real-time dan historis | [web/README.md](web/README.md) |
 
 ---
