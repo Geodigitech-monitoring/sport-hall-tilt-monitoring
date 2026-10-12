@@ -65,7 +65,7 @@ Data dikirim secara real-time ke web dashboard melalui protokol MQTT, disimpan k
   │Google Sheets│      │  SD Card     │
   │ (Sensor 1)  │      │ /data_*.csv  │
   └─────────────┘      │(setiap 30min)│
-                       └──────────────┘
+                        └──────────────┘
 
   ┌──────────────┐
   │    ESP32 #2  │─────► HiveMQ Cloud ──► Web Dashboard
@@ -188,6 +188,28 @@ const char* mqtt_password = "YOUR_PASSWORD";
 ```
 
 > ⚠️ **Jangan hardcode credential di kode yang dipush ke repository publik.** Pertimbangkan menggunakan file konfigurasi terpisah yang masuk ke `.gitignore`.
+
+#### 🔑 Cara Mendapatkan Credential HiveMQ Cloud
+
+Keempat nilai di atas diperoleh dari akun HiveMQ Cloud (gratis, paket *Serverless*):
+
+1. **Daftar / login** di [console.hivemq.cloud](https://console.hivemq.cloud/).
+2. **Buat cluster** — klik **Create New Cluster**, pilih paket **Serverless (Free)**, lalu pilih region (misalnya `eu`). Tunggu hingga status cluster menjadi *Running*.
+3. **Ambil `mqtt_server` dan `mqtt_port`** — klik **Manage Cluster**, lalu lihat bagian **Overview**:
+
+   | Info di HiveMQ | Isi ke kode | Keterangan |
+   |---|---|---|
+   | **Cluster URL** (`xxxxxxxx.s1.eu.hivemq.cloud`) | `mqtt_server` | Salin tanpa `mqtt://` / `wss://` |
+   | **TLS MQTT Port** (`8883`) | `mqtt_port` | Dipakai oleh ESP32 |
+   | **TLS WebSocket Port** (`8884`) | `mqtt_port` di `script.js` | Dipakai oleh web dashboard |
+
+4. **Buat `mqtt_username` dan `mqtt_password`** — buka tab **Access Management** → **Add Credentials**, isi username dan password sesuai keinginan, pilih permission **Publish and Subscribe**, lalu klik **Save**.
+   > ⚠️ Password hanya ditampilkan saat dibuat. Simpan di tempat aman; jika lupa, hapus credential lalu buat ulang.
+5. **Credential untuk web dashboard** — di halaman **Overview** cluster, buka tab **Web Client**, lalu klik **Connect**. HiveMQ akan membuat credential otomatis berformat `hivemq.webclient.<angka>`. Gunakan ini (atau buat credential terpisah dengan permission **Subscribe Only**) untuk `username` dan `password` di `MQTT_CONFIGS` pada `script.js`.
+
+> 💡 Proyek ini memakai **dua cluster** terpisah (satu per sensor). Ulangi langkah 2–5 untuk ESP2, lalu isi `MQTT_CONFIGS.s1` dan `MQTT_CONFIGS.s2` di `script.js` dengan hostname masing-masing cluster.
+
+Setelah terisi, ESP32 akan terhubung ke broker lewat port `8883` (TLS) dan dashboard lewat port `8884` (WebSocket Secure) dengan topic yang sama: `building-tilt/sensor-data`.
 
 **4. Upload file web ke SPIFFS (khusus ESP1)**
 
