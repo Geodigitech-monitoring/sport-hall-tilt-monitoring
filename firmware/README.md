@@ -102,7 +102,7 @@ const char* mqtt_password = "YOUR_PASSWORD";
 
 File `index.html`, `script.js`, `style.css`, dan `unika.png` (dari folder [`web/`](../web/)) perlu diunggah ke memori SPIFFS ESP32 agar bisa diakses via IP lokal. Langkah ini wajib untuk **kedua** ESP32, karena firmware menghentikan program jika SPIFFS gagal di-mount.
 
-1. Buat folder `data/` di dalam folder sketch `FINAL_PROJECT_ESP1/` dan `FINAL_PROJECT_ESP2/`
+1. Pastikan setiap `.ino` sudah berada di folder sketch bernama sama (`FINAL_PROJECT_ESP1/` dan `FINAL_PROJECT_ESP2/`, lihat catatan di [README utama](../README.md#-struktur-repository)), lalu buat folder `data/` di dalam masing-masing folder sketch
 2. Salin keempat file tersebut ke masing-masing folder `data/`
 3. Di Arduino IDE: **Tools → ESP32 Sketch Data Upload**
 
