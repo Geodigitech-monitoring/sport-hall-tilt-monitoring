@@ -1,68 +1,180 @@
-# 🌐 Web Dashboard
+# 🏗️ Sport Hall Tilt Monitoring
 
-Dashboard real-time dan historis untuk sistem **Sport Hall Tilt Monitoring**. Kembali ke [README utama](../README.md).
+Sistem pemantauan kemiringan gedung berbasis **ESP32 + Web Dashboard** secara real-time untuk **Gedung Sport Hall Universitas Katolik Soegijapranata**, Semarang.
+
+![Status](https://img.shields.io/badge/status-active-brightgreen)
+![Platform](https://img.shields.io/badge/platform-ESP32%20%2B%20Web-blue)
+![MQTT](https://img.shields.io/badge/broker-HiveMQ%20Cloud-orange)
+![Sensor](https://img.shields.io/badge/sensor-MPU9250%20%7C%20MPU6050-purple)
+
+---
 
 ## 📋 Daftar Isi
 
-- [Cara Menjalankan](#-cara-menjalankan)
-- [Konfigurasi MQTT (script.js)](#konfigurasi-mqtt-scriptjs)
-- [Konfigurasi Google Sheets (historis.html)](#konfigurasi-google-sheets-historishtml)
+- [Tentang Proyek](#-tentang-proyek)
+- [Fitur](#-fitur)
+- [Arsitektur Sistem](#-arsitektur-sistem)
+- [Struktur Repository](#-struktur-repository)
+- [Memulai](#-memulai)
+- [Level Status Peringatan](#-level-status-peringatan)
+- [Jadwal Pengiriman Data](#-jadwal-pengiriman-data)
+- [Informasi Gedung](#-informasi-gedung)
+- [Teknologi](#-teknologi)
 
 ---
 
-## 🚀 Cara Menjalankan
+## 📖 Tentang Proyek
 
-### Cara A — Hosting statis (GitHub Pages / Netlify)
+Sistem ini memantau pergeseran dan kemiringan struktural Gedung Sport Hall Unika Soegijapranata secara berkelanjutan. Dua perangkat **ESP32** dipasang pada titik strategis gedung, masing-masing dilengkapi sensor IMU untuk mengukur sudut **Roll** dan **Pitch**.
 
-1. Buka `script.js` dan pastikan [konfigurasi MQTT](#konfigurasi-mqtt-scriptjs) sudah benar
-2. Deploy folder `web/` ke hosting statis
-3. Akses via URL hosting
-
-### Cara B — Akses langsung dari ESP32
-
-Setelah firmware ESP1 berhasil diflash dan SPIFFS terisi (lihat [firmware/README.md](../firmware/README.md#-instalasi-firmware)):
-
-1. Hubungkan perangkat ke jaringan WiFi yang sama dengan ESP32
-2. Buka Serial Monitor untuk melihat IP address ESP32
-3. Akses `http://192.168.x.x` di browser
+Data dikirim secara real-time ke web dashboard melalui protokol MQTT, disimpan ke Google Sheets sebagai arsip berkala, dan dicatat ke SD Card sebagai backup lokal (khusus ESP1).
 
 ---
 
-## Konfigurasi MQTT (script.js)
+## ✨ Fitur
 
-Dashboard terhubung ke HiveMQ Cloud lewat **WebSocket Secure** (port `8884`), terpisah dari koneksi ESP32 (port `8883`). Setiap sensor punya cluster sendiri di `MQTT_CONFIGS`:
+- **Real-time monitoring** — data diperbarui setiap 200ms via MQTT over WebSocket
+- **Dual sensor** — ESP1 sebagai titik ukur, ESP2 sebagai titik referensi
+- **Low-pass filter** — peredam noise pada pembacaan akselerometer (α = 0.05)
+- **Kalibrasi sensor** — offset & scale factor tersimpan di firmware
+- **Sinkronisasi waktu NTP** — timestamp akurat via `pool.ntp.org` (UTC+7)
+- **Sistem peringatan otomatis** — banner alert dengan 4 level status
+- **Dashboard historis** — grafik interaktif dengan navigasi kalender
+- **WebSocket lokal** — akses dashboard langsung dari IP ESP32
+- **Download data SD Card** — unduh file CSV historis via HTTP (ESP1)
+- **Responsive design** — tampilan optimal di desktop maupun mobile
 
-```javascript
-const MQTT_CONFIGS = {
-    s1: { hostname: 'CLUSTER_SENSOR_1.s1.eu.hivemq.cloud', port: 8884, username: '...', password: '...' },
-    s2: { hostname: 'CLUSTER_SENSOR_2.s1.eu.hivemq.cloud', port: 8884, username: '...', password: '...' }
-};
+---
+
+## 🏛️ Arsitektur Sistem
+
+```
+                        WiFi: "Sporthall"
+                       ┌─────────────────────┐
+  ┌──────────────┐     │                     │     ┌─────────────────────────┐
+  │    ESP32 #1  │─────┤   HiveMQ Cloud      ├────►│    Web Dashboard        │
+  │  (Sensor 1)  │MQTT │   (MQTT Broker)     │WSS  │  index.html             │
+  │  MPU9250     │SSL  │                     │     │  + script.js            │
+  │  + SD Card   │     └─────────────────────┘     └─────────────────────────┘
+  └──────┬───────┘
+         │ HTTP GET (setiap jam)
+         ▼
+  ┌─────────────┐      ┌──────────────┐
+  │Google Sheets│      │  SD Card     │
+  │ (Sensor 1)  │------│ /data_*.csv  │
+  └─────────────┘      │(setiap 30min)│
+                       └──────────────┘
+
+  ┌──────────────┐
+  │    ESP32 #2  │─────► HiveMQ Cloud ──► Web Dashboard
+  │  (Sensor 2)  │MQTT
+  │  MPU6050     │SSL   HTTP GET (setiap jam)
+  └──────┬───────┘           │
+         └──────────────────►▼
+                        ┌─────────────┐
+                        │Google Sheets│
+                        │ (Sensor 2)  │
+                        └─────────────┘
 ```
 
-**Cara mendapatkan credential web:**
+---
 
-1. Buka [console.hivemq.cloud](https://console.hivemq.cloud/) → **Manage Cluster** → tab **Web Client** → klik **Connect**. HiveMQ membuat credential otomatis berformat `hivemq.webclient.<angka>`.
-2. Alternatif: buat credential terpisah di **Access Management** dengan permission **Subscribe Only**, karena dashboard hanya perlu membaca data.
-3. Isi `hostname`, `username`, dan `password` untuk `s1` dan `s2` sesuai cluster masing-masing. Cara mendapatkan hostname ada di [firmware/README.md](../firmware/README.md#-cara-mendapatkan-credential-hivemq-cloud).
+## 📁 Struktur Repository
 
-> ⚠️ Karena `script.js` berjalan di browser, credential di dalamnya bisa dilihat siapa pun yang membuka dashboard. Pakai credential **Subscribe Only** khusus web, jangan credential yang sama dengan ESP32.
+```
+sport-hall-tilt-monitoring/
+│
+├── README.md                          # Ringkasan proyek (file ini)
+│
+├── firmware/
+│   ├── README.md                      # Hardware, instalasi firmware, credential HiveMQ
+│   ├── FINAL_PROJECT_ESP1/
+│   │   └── FINAL_PROJECT_ESP1.ino     # ESP32 #1 — titik ukur (MPU9250 + SD Card)
+│   └── FINAL_PROJECT_ESP2/
+│       └── FINAL_PROJECT_ESP2.ino     # ESP32 #2 — titik referensi (MPU6050)
+│
+└── web/
+    ├── README.md                      # Setup dashboard & Google Sheets
+    ├── index.html                     # Dashboard real-time
+    ├── historis.html                  # Grafik & tabel data historis
+    ├── script.js                      # Logika MQTT, update UI, level alert
+    ├── style.css                      # Stylesheet responsif
+    └── unika.png                      # Logo Universitas Katolik Soegijapranata
+```
+
+| Folder      | Isi                                                         | Dokumentasi                              |
+| ----------- | ----------------------------------------------------------- | ---------------------------------------- |
+| `firmware/` | Kode ESP32 (pembacaan sensor, MQTT, Google Sheets, SD Card) | [firmware/README.md](firmware/README.md) |
+| `web/`      | Web dashboard real-time dan historis                        | [web/README.md](web/README.md)           |
 
 ---
 
-## Konfigurasi Google Sheets (historis.html)
+## 🚀 Memulai
 
-1. Buka `historis.html` dan ganti Sheet ID:
-```javascript
-const SHEET_IDS = {
-    s1: 'YOUR_GOOGLE_SHEET_ID_SENSOR_1',
-    s2: 'YOUR_GOOGLE_SHEET_ID_SENSOR_2'
-};
-```
+1. **Siapkan broker MQTT** dan dapatkan credential HiveMQ Cloud → [firmware/README.md](firmware/README.md#-cara-mendapatkan-credential-hivemq-cloud)
+2. **Flash firmware** ke kedua ESP32 → [firmware/README.md](firmware/README.md#-instalasi-firmware)
+3. **Jalankan web dashboard** → [web/README.md](web/README.md)
 
-2. Pastikan Google Sheet sudah dipublikasikan: **File → Share → Publish to web**
+---
 
-3. Format kolom yang diharapkan:
+## 🚦 Level Status Peringatan
 
-| Kolom A | Kolom B | Kolom C | Kolom D | Kolom E |
-|---|---|---|---|---|
-| Tanggal | Waktu | Pitch (°) | Roll (°) | Rata-rata (°) |
+Status ditentukan dari nilai absolut terbesar antara sudut Roll dan Pitch **Sensor 1 (titik ukur)**:
+
+| Sudut Maks. | Status      | Warna     | Tindakan                          |
+| ----------- | ----------- | --------- | --------------------------------- |
+| < 5°        | **AMAN**    | 🟢 Hijau  | Tidak diperlukan tindakan         |
+| 5° – 10°    | **WASPADA** | 🟡 Kuning | Pantau terus kondisi gedung       |
+| 10° – 20°   | **SIAGA**   | 🟠 Oranye | Lakukan pemeriksaan segera        |
+| ≥ 20°       | **BAHAYA**  | 🔴 Merah  | Segera evakuasi & hubungi petugas |
+
+---
+
+## 🕐 Jadwal Pengiriman Data
+
+| Tujuan          | Interval         | Catatan                   |
+| --------------- | ---------------- | ------------------------- |
+| MQTT → HiveMQ   | Setiap 500ms     | Publish dari firmware     |
+| WebSocket lokal | Setiap 200ms     | Update UI dashboard lokal |
+| Google Sheets   | Setiap jam tepat | Menit 0, detik 0–5        |
+| SD Card (ESP1)  | Setiap 30 menit  | Menit 0 dan 30            |
+
+Waktu disinkronkan via NTP ke zona **UTC+7 (WIB)** menggunakan server `pool.ntp.org`.
+
+---
+
+## 🏢 Informasi Gedung
+
+| Atribut            | Detail                                                                      |
+| ------------------ | --------------------------------------------------------------------------- |
+| **Nama**           | Gedung Sport Hall                                                           |
+| **Institusi**      | Universitas Katolik Soegijapranata                                          |
+| **Alamat**         | Jl. Pawiyatan Luhur IV/1, Bendan Duwur, Gajahmungkur, Semarang, Jawa Tengah |
+| **Tahun Dibangun** | 2013                                                                        |
+| **Luas Bangunan**  | 2.470 m²                                                                    |
+| **Kapasitas**      | 2.000 orang                                                                 |
+
+---
+
+## 🛠️ Teknologi
+
+**Firmware:**
+
+- ESP32 Arduino Core
+- [MPU9250](https://github.com/hideakitai/MPU9250) (sensor ESP1)
+- [MPU6050_tockn](https://github.com/tockn/MPU6050_tockn) (sensor ESP2)
+- [PubSubClient](https://github.com/knolleary/pubsubclient) (MQTT)
+- [WebSocketsServer](https://github.com/Links2004/arduinoWebSockets)
+
+**Web Dashboard:**
+
+- HTML5, CSS3, Vanilla JavaScript
+- [MQTT.js](https://github.com/mqttjs/MQTT.js) via WebSocket
+- [HiveMQ Cloud](https://www.hivemq.com/mqtt-cloud-broker/) (MQTT broker)
+- [Chart.js](https://www.chartjs.org/) (grafik historis)
+- Google Sheets gviz API (data historis)
+- [Font Awesome 6](https://fontawesome.com/) & [Poppins](https://fonts.google.com/specimen/Poppins)
+
+---
+
+_Sistem Pemantauan Pergeseran Gedung Sport Hall © 2024 — Universitas Katolik Soegijapranata_

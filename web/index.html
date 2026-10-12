@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Pemantauan Pergeseran Gedung Sport Hall</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- ── HEADER ── -->
+        <header>
+            <div class="logo-container">
+                <img src="unika.png" alt="UNIKA" class="logo">
+                <div class="header-title">
+                    <h1>SISTEM PEMANTAUAN PERGESERAN GEDUNG SPORT HALL</h1>
+                    <p>Universitas Katolik Soegijapranata</p>
+                </div>
+            </div>
+            <div class="date-display">
+                <p id="current-date">Mengambil tanggal...</p>
+                <p id="current-time">Mengambil waktu...</p>
+            </div>
+        </header>
+
+        <!-- ── ALERT BANNER ── -->
+        <div class="alert-banner" id="alert-banner" style="display:none;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div class="alert-content">
+                <h3 id="alert-title">Peringatan</h3>
+                <p id="alert-message"></p>
+            </div>
+        </div>
+
+        <!-- ── DATA ACTIONS ── -->
+        <div class="data-actions">
+            <!-- Sensor 1 -->
+            <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQIR8d1AwjdvR_iPbGsw9fjYL1nATAzCoqa-wkMgDzi4D_xu1U7Sv-kWEMBAWqPaBXpv7D64i5cQZyI/pub?output=xlsx"
+               class="action-btn" target="_blank" rel="noopener noreferrer"
+               download="Data_Sensor1_SportHall.xlsx">
+                <i class="fas fa-file-excel"></i> Download XLSX Sensor 1
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1mrrOjf3kJfSZfiNj-cJmOWlMSGfqpblrkNCGmkKKIDc/edit?usp=sharing"
+               class="action-btn" target="_blank" rel="noopener noreferrer">
+                <i class="fas fa-external-link-alt"></i> Google Sheets Sensor 1
+            </a>
+
+            <!-- Sensor 2 -->
+            <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTEtT9ZR0HCsOcxlOq_Ns4ijdIvVvVRwAarEhnzmOmDmJrd5h_HVe-YbxZ28A6awGzVeZBAt3rr3-BU/pub?output=xlsx"
+               class="action-btn" target="_blank" rel="noopener noreferrer"
+               download="Data_Sensor2_SportHall.xlsx">
+                <i class="fas fa-file-excel"></i> Download XLSX Sensor 2
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1HjXdats-6j_nTqGa1x98_PCKedIaKza6Vd9QtlCUE9s/edit?usp=sharing"
+               class="action-btn" target="_blank" rel="noopener noreferrer">
+                <i class="fas fa-external-link-alt"></i> Google Sheets Sensor 2
+            </a>
+
+            <a href="historis.html" class="action-btn">
+                <i class="fas fa-chart-line"></i> Data Historis
+            </a>
+        </div>
+
+        <!-- ── MAIN CONTENT: 2 SENSOR COLUMNS ── -->
+        <div class="main-content">
+
+            <!-- ── SENSOR 1 ── -->
+            <div class="sensor-col">
+                <div class="sensor-label sensor-label-1">
+                    <i class="fas fa-satellite-dish"></i>
+                    Sensor 1 &mdash; Titik Ukur
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <h2>Data Sensor Real-Time</h2>
+                        <i class="fas fa-tachometer-alt" style="color:#004aad; font-size:24px;"></i>
+                    </div>
+
+                    <div class="data-summary">
+                        <div class="data-item">
+                            <div class="data-value" id="s1-roll">0.00°</div>
+                            <div class="data-label">Sudut Roll</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-value" id="s1-pitch">0.00°</div>
+                            <div class="data-label">Sudut Pitch</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-value status-aman" id="s1-status">AMAN</div>
+                            <div class="data-label">Status Gedung</div>
+                        </div>
+                    </div>
+
+                    <div class="reading-info">
+                        <h3><i class="fas fa-clock"></i> Jadwal Pengiriman Data</h3>
+                        <ul>
+                            <li><i class="fas fa-cloud-upload-alt"></i> Ke Google Sheets: Setiap jam tepat (24 data/hari)</li>
+                            <li><i class="fas fa-save"></i> Ke SD Card: Setiap 30 menit (48 data/hari)</li>
+                            <li><i class="fas fa-sync"></i> Real-time: Update setiap 200ms</li>
+                        </ul>
+                    </div>
+
+                    <div class="connection-status-container">
+                        <div class="status-indicator">
+                            <span class="status-dot disconnected" id="s1-dot"></span>
+                            <span id="s1-conn-text">Menghubungkan...</span>
+                        </div>
+                        <div class="update-info">
+                            <i class="fas fa-sync"></i>
+                            <span>Update real-time setiap 200ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <h2>Penjelasan Sudut</h2>
+                        <i class="fas fa-info-circle" style="color:#0083b0; font-size:24px;"></i>
+                    </div>
+                    <div class="angle-explanation">
+                        <div class="angle-items">
+                            <div class="angle-item">
+                                <div class="angle-icon roll-icon"><i class="fas fa-rotate-right"></i></div>
+                                <div>
+                                    <h4>Sudut Roll</h4>
+                                    <p>Kemiringan lateral (kiri-kanan) bangunan</p>
+                                </div>
+                            </div>
+                            <div class="angle-item">
+                                <div class="angle-icon pitch-icon"><i class="fas fa-rotate-left"></i></div>
+                                <div>
+                                    <h4>Sudut Pitch</h4>
+                                    <p>Kemiringan longitudinal (depan-belakang) bangunan</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── SENSOR 2 ── -->
+            <div class="sensor-col">
+                <div class="sensor-label sensor-label-2">
+                    <i class="fas fa-anchor"></i>
+                    Sensor 2 &mdash; Titik Referensi
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <h2>Data Sensor Real-Time</h2>
+                        <i class="fas fa-tachometer-alt" style="color:#059669; font-size:24px;"></i>
+                    </div>
+
+                    <div class="data-summary">
+                        <div class="data-item">
+                            <div class="data-value" id="s2-roll">0.00°</div>
+                            <div class="data-label">Sudut Roll</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-value" id="s2-pitch">0.00°</div>
+                            <div class="data-label">Sudut Pitch</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-value status-aman" id="s2-status">AMAN</div>
+                            <div class="data-label">Status Gedung</div>
+                        </div>
+                    </div>
+
+                    <div class="reading-info">
+                        <h3><i class="fas fa-clock"></i> Jadwal Pengiriman Data</h3>
+                        <ul>
+                            <li><i class="fas fa-cloud-upload-alt"></i> Ke Google Sheets: Setiap jam tepat (24 data/hari)</li>
+                            <li><i class="fas fa-save"></i> Ke SD Card: Setiap 30 menit (48 data/hari)</li>
+                            <li><i class="fas fa-sync"></i> Real-time: Update setiap 200ms</li>
+                        </ul>
+                    </div>
+
+                    <div class="connection-status-container">
+                        <div class="status-indicator">
+                            <span class="status-dot disconnected" id="s2-dot"></span>
+                            <span id="s2-conn-text">Menghubungkan...</span>
+                        </div>
+                        <div class="update-info">
+                            <i class="fas fa-sync"></i>
+                            <span>Update real-time setiap 200ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <h2>Informasi Gedung Sport Hall</h2>
+                        <i class="fas fa-info-circle" style="color:#0083b0; font-size:24px;"></i>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>
+                                <h3>Lokasi</h3>
+                                <p>Jalan Pawiyatan Luhur IV/1, Bendan Duwur, Kecamatan Gajahmungkur, Kota Semarang, Jawa Tengah</p>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <div><h3>Dibangun</h3><p>2013</p></div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-ruler-combined"></i>
+                            <div><h3>Luas Bangunan</h3><p>2.470 m²</p></div>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-users"></i>
+                            <div><h3>Kapasitas</h3><p>2.000 orang</p></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- end .main-content -->
+
+        <footer>
+            <p>Sistem Pemantauan Pergeseran Gedung Sport Hall &copy; <span id="current-year"></span> - Universitas Katolik Soegijapranata</p>
+            <p>Data diperbarui secara real-time | HiveMQ Cloud MQTT</p>
+        </footer>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

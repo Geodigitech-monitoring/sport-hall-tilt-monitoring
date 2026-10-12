@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Historis — Sport Hall Tilt Monitoring</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary: #004aad;
+            --primary-light: rgba(0,74,173,0.08);
+            --s1: #004aad;
+            --s1-light: rgba(0,74,173,0.12);
+            --s2: #059669;
+            --s2-light: rgba(5,150,105,0.12);
+            --roll-color: #7c3aed;
+            --pitch-color: #db2777;
+            --bg: #f4f7fe;
+            --card: #ffffff;
+            --text: #2b3674;
+            --muted: #a3aed1;
+            --border: #e2e8f0;
+            --shadow: 0px 8px 24px rgba(112,144,176,0.15);
+            --radius: 16px;
+            --ease: all 0.25s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── NAV ── */
+        .topnav {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 7px 14px;
+            border-radius: 10px;
+            background: var(--primary-light);
+            transition: var(--ease);
+        }
+
+        .back-btn:hover { background: var(--primary); color: white; }
+
+        .nav-title { font-size: 15px; font-weight: 700; }
+        .nav-sub { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+        @media (max-width: 600px) { .nav-sub { display: none; } }
+
+        /* ── CONTAINER ── */
+        .container { max-width: 1300px; margin: 0 auto; padding: 28px 20px 48px; }
+
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .page-header p { color: var(--muted); font-size: 13px; }
+
+        /* ── LEGEND ── */
+        .legend-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+
+        .leg {
+            display: flex; align-items: center; gap: 7px;
+            padding: 7px 14px; border-radius: 20px;
+            font-size: 12px; font-weight: 600;
+        }
+
+        .leg-s1 { background: var(--s1-light); color: var(--s1); }
+        .leg-s2 { background: var(--s2-light); color: var(--s2); }
+
+        .leg-dot { width: 9px; height: 9px; border-radius: 50%; }
+        .leg-dot-s1 { background: var(--s1); }
+        .leg-dot-s2 { background: var(--s2); }
+
+        /* ── TOP LAYOUT: calendar + content ── */
+        .top-layout {
+            display: flex;
+            gap: 22px;
+            align-items: flex-start;
+            margin-bottom: 26px;
+        }
+
+        @media (max-width: 900px) { .top-layout { flex-direction: column; } }
+
+        /* ── CALENDAR CARD ── */
+        .cal-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            padding: 20px;
+            min-width: 300px;
+            flex-shrink: 0;
+        }
+
+        .cal-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .cal-nav-btn {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            border: 1.5px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+            transition: var(--ease);
+        }
+
+        .cal-nav-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .cal-month-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .cal-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-bottom: 6px;
+        }
+
+        .cal-wd {
+            text-align: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            padding: 4px 0;
+        }
+
+        .cal-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+        }
+
+        .cal-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--muted);
+            position: relative;
+            cursor: default;
+            transition: var(--ease);
+        }
+
+        .cal-day.has-data {
+            color: var(--text);
+            cursor: pointer;
+            background: var(--bg);
+            font-weight: 600;
+        }
+
+        .cal-day.has-data:hover { background: var(--primary-light); color: var(--primary); }
+
+        .cal-day.selected {
+            background: var(--primary) !important;
+            color: white !important;
+        }
+
+        .cal-day.today { font-weight: 700; }
+
+        .cal-dots {
+            display: flex;
+            gap: 2px;
+            position: absolute;
+            bottom: 3px;
+        }
+
+        .cal-dot {
+            width: 4px; height: 4px;
+            border-radius: 50%;
+        }
+
+        .cal-dot-s1 { background: var(--s1); }
+        .cal-dot-s2 { background: var(--s2); }
+
+        .cal-day.selected .cal-dot-s1,
+        .cal-day.selected .cal-dot-s2 { background: rgba(255,255,255,0.8); }
+
+        /* Calendar legend */
+        .cal-legend {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cal-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        /* Selected date badge */
+        .selected-date-badge {
+            margin-top: 14px;
+            padding: 10px 14px;
+            background: var(--primary-light);
+            border-radius: 10px;
+            border: 1.5px solid rgba(0,74,173,0.15);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        /* ── RIGHT SIDE: status + stats ── */
+        .right-side { flex: 1; }
+
+        /* ── STATUS PILLS ── */
+        .status-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+
+        .s-pill {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1.5px solid;
+        }
+
+        .pill-s1 { background: var(--s1-light); color: var(--s1); border-color: rgba(0,74,173,0.2); }
+        .pill-s2 { background: var(--s2-light); color: var(--s2); border-color: rgba(5,150,105,0.2); }
+        .pill-na { background: #f1f5f9; color: var(--muted); border-color: var(--border); }
+
+        /* ── STAT CARDS ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+
+        .stat-card {
+            background: var(--card);
+            border-radius: 14px;
+            box-shadow: var(--shadow);
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-left: 4px solid;
+        }
+
+        .stat-card.s1r { border-color: var(--s1); }
+        .stat-card.s1p { border-color: rgba(0,74,173,0.35); }
+        .stat-card.s2r { border-color: var(--s2); }
+        .stat-card.s2p { border-color: rgba(5,150,105,0.35); }
+
+        .stat-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 5px; }
+        .stat-val { font-size: 22px; font-weight: 700; margin-bottom: 2px; }
+        .stat-val.c-s1 { color: var(--s1); }
+        .stat-val.c-s2 { color: var(--s2); }
+        .stat-sub { font-size: 10px; color: var(--muted); }
+
+        /* ── SECTION TITLE ── */
+        .sec-title {
+            font-size: 15px; font-weight: 700;
+            display: flex; align-items: center; gap: 9px;
+            margin-bottom: 16px;
+        }
+
+        .sec-title i { color: var(--primary); }
+
+        /* ── CHARTS ── */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+            margin-bottom: 26px;
+        }
+
+        @media (min-width: 900px) { .charts-grid { grid-template-columns: 1fr 1fr; } }
+
+        .chart-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .chart-title {
+            font-size: 13px; font-weight: 700;
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 3px;
+        }
+
+        .chart-sub { font-size: 11px; color: var(--muted); margin-bottom: 14px; }
+
+        .cpill {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .cpill-roll { background: rgba(124,58,237,0.1); color: var(--roll-color); }
+        .cpill-pitch { background: rgba(219,39,119,0.1); color: var(--pitch-color); }
+
+        .chart-wrap { position: relative; height: 220px; }
+
+        /* ── TABLE ── */
+        .table-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 22px 24px;
+            border: 1px solid var(--border);
+            margin-bottom: 26px;
+        }
+
+        .table-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .table-search {
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            color: var(--text);
+            outline: none;
+            min-width: 190px;
+            transition: var(--ease);
+        }
+
+        .table-search:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,74,173,0.1); }
+
+        .tbl-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+        thead { background: linear-gradient(135deg, #f8faff, #f0f4f8); }
+
+        th {
+            padding: 11px 14px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            white-space: nowrap;
+            border-bottom: 2px solid var(--border);
+        }
+
+        th.th-s1 { border-top: 3px solid var(--s1); }
+        th.th-s2 { border-top: 3px solid var(--s2); }
+
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #f0f4f8;
+            white-space: nowrap;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafbff; }
+
+        .td-time { font-size: 12px; color: var(--muted); font-weight: 500; }
+        .td-s1 { color: var(--s1); font-weight: 600; }
+        .td-s2 { color: var(--s2); font-weight: 600; }
+        .td-na { color: var(--muted); font-style: italic; font-size: 12px; }
+        .td-pos { color: #059669; font-weight: 600; }
+        .td-neg { color: #dc2626; font-weight: 600; }
+
+        /* ── PAGINATION ── */
+        .pagination {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            margin-top: 14px; flex-wrap: wrap; gap: 10px;
+        }
+
+        .pg-info { font-size: 12px; color: var(--muted); }
+        .pg-btns { display: flex; gap: 5px; }
+
+        .pg-btn {
+            padding: 6px 11px;
+            border-radius: 8px;
+            border: 1.5px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            transition: var(--ease);
+        }
+
+        .pg-btn:hover, .pg-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        /* ── EMPTY / LOADING ── */
+        .empty-state {
+            text-align: center;
+            padding: 70px 20px;
+            color: var(--muted);
+        }
+
+        .empty-state i { font-size: 44px; margin-bottom: 14px; opacity: 0.35; display: block; }
+        .empty-state h3 { font-size: 16px; font-weight: 600; margin-bottom: 5px; color: var(--text); }
+        .empty-state p { font-size: 13px; }
+
+        .loading-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(244,247,254,0.88);
+            z-index: 300;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+        }
+
+        .loading-overlay.active { display: flex; }
+
+        .spinner {
+            width: 44px; height: 44px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+        }
+
+        .loading-text { font-size: 14px; font-weight: 500; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Mengambil data dari Google Sheets...</div>
+</div>
+
+<nav class="topnav">
+    <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i> Kembali</a>
+    <div class="nav-title">Data Historis</div>
+    <div class="nav-sub">Sport Hall — Universitas Katolik Soegijapranata</div>
+</nav>
+
+<div class="container">
+
+    <div class="page-header">
+        <h1><i class="fas fa-chart-line" style="color:var(--primary);margin-right:10px;"></i>Analisis Data Historis</h1>
+        <p>Perbandingan kemiringan Sensor 1 (Titik Ukur) dan Sensor 2 (Titik Referensi)</p>
+    </div>
+
+    <div class="legend-row">
+        <div class="leg leg-s1"><span class="leg-dot leg-dot-s1"></span>Sensor 1 — Titik Ukur</div>
+        <div class="leg leg-s2"><span class="leg-dot leg-dot-s2"></span>Sensor 2 — Titik Referensi</div>
+    </div>
+
+    <!-- TOP LAYOUT: Calendar + Right side -->
+    <div class="top-layout">
+
+        <!-- CALENDAR -->
+        <div class="cal-card">
+            <div class="cal-nav">
+                <button class="cal-nav-btn" id="calPrev"><i class="fas fa-chevron-left"></i></button>
+                <div class="cal-month-label" id="calMonthLabel">—</div>
+                <button class="cal-nav-btn" id="calNext"><i class="fas fa-chevron-right"></i></button>
+            </div>
+
+            <div class="cal-weekdays">
+                <div class="cal-wd">Min</div>
+                <div class="cal-wd">Sen</div>
+                <div class="cal-wd">Sel</div>
+                <div class="cal-wd">Rab</div>
+                <div class="cal-wd">Kam</div>
+                <div class="cal-wd">Jum</div>
+                <div class="cal-wd">Sab</div>
+            </div>
+
+            <div class="cal-days" id="calDays"></div>
+
+            <div class="cal-legend">
+                <div class="cal-legend-item">
+                    <span class="cal-dot cal-dot-s1"></span> Sensor 1 ada data
+                </div>
+                <div class="cal-legend-item">
+                    <span class="cal-dot cal-dot-s2"></span> Sensor 2 ada data
+                </div>
+            </div>
+
+            <div class="selected-date-badge" id="selectedBadge">
+                Pilih tanggal pada kalender
+            </div>
+        </div>
+
+        <!-- RIGHT: status + stats -->
+        <div class="right-side">
+            <div class="status-row" id="statusRow" style="display:none;">
+                <div class="s-pill pill-s1" id="pill1">
+                    <i class="fas fa-circle-check" style="font-size:11px;"></i>
+                    <span id="pillText1">Sensor 1: —</span>
+                </div>
+                <div class="s-pill" id="pill2">
+                    <i class="fas fa-circle-xmark" style="font-size:11px;" id="icon2"></i>
+                    <span id="pillText2">Sensor 2: Tidak ada data</span>
+                </div>
+            </div>
+
+            <div class="stats-grid" id="statsGrid" style="display:none;">
+                <div class="stat-card s1r">
+                    <div class="stat-lbl">S1 — Maks. |Roll|</div>
+                    <div class="stat-val c-s1" id="st-s1-mr">—</div>
+                    <div class="stat-sub">Sensor 1</div>
+                </div>
+                <div class="stat-card s1p">
+                    <div class="stat-lbl">S1 — Maks. |Pitch|</div>
+                    <div class="stat-val c-s1" id="st-s1-mp">—</div>
+                    <div class="stat-sub">Sensor 1</div>
+                </div>
+                <div class="stat-card s2r">
+                    <div class="stat-lbl">S2 — Maks. |Roll|</div>
+                    <div class="stat-val c-s2" id="st-s2-mr">—</div>
+                    <div class="stat-sub">Sensor 2</div>
+                </div>
+                <div class="stat-card s2p">
+                    <div class="stat-lbl">S2 — Maks. |Pitch|</div>
+                    <div class="stat-val c-s2" id="st-s2-mp">—</div>
+                    <div class="stat-sub">Sensor 2</div>
+                </div>
+            </div>
+
+            <!-- Empty state inside right column -->
+            <div class="empty-state" id="emptyRight">
+                <i class="fas fa-hand-pointer"></i>
+                <h3>Pilih Tanggal</h3>
+                <p>Klik tanggal yang tersedia di kalender untuk melihat data</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div id="chartsSection" style="display:none;">
+        <div class="sec-title"><i class="fas fa-chart-area"></i> Grafik Tren & Perbandingan</div>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title"><span class="cpill cpill-roll">ROLL</span> Perbandingan Sudut Roll</div>
+                <div class="chart-sub">Kemiringan lateral (kiri–kanan) — S1 vs S2</div>
+                <div class="chart-wrap"><canvas id="rollChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title"><span class="cpill cpill-pitch">PITCH</span> Perbandingan Sudut Pitch</div>
+                <div class="chart-sub">Kemiringan longitudinal (depan–belakang) — S1 vs S2</div>
+                <div class="chart-wrap"><canvas id="pitchChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-card" id="tableCard" style="display:none;">
+        <div class="table-toolbar">
+            <div class="sec-title" style="margin-bottom:0;"><i class="fas fa-table"></i> Tabel Data</div>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <span id="pgInfo" style="font-size:12px;color:var(--muted);"></span>
+                <input type="text" class="table-search" id="tableSearch" placeholder="Cari berdasarkan waktu...">
+            </div>
+        </div>
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="vertical-align:bottom;">Waktu</th>
+                        <th colspan="2" class="th-s1" style="text-align:center;color:var(--s1);">Sensor 1 — Titik Ukur</th>
+                        <th colspan="2" class="th-s2" style="text-align:center;color:var(--s2);">Sensor 2 — Titik Referensi</th>
+                        <th colspan="2" style="text-align:center;color:var(--muted);">Selisih (S1 − S2)</th>
+                    </tr>
+                    <tr>
+                        <th class="th-s1">Roll (°)</th>
+                        <th class="th-s1">Pitch (°)</th>
+                        <th class="th-s2">Roll (°)</th>
+                        <th class="th-s2">Pitch (°)</th>
+                        <th>ΔRoll (°)</th>
+                        <th>ΔPitch (°)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<footer>Sistem Pemantauan Pergeseran Gedung Sport Hall &copy; 2026 — Universitas Katolik Soegijapranata</footer>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────
+const SHEET_IDS = {
+    s1: '1mrrOjf3kJfSZfiNj-cJmOWlMSGfqpblrkNCGmkKKIDc',
+    s2: '1HjXdats-6j_nTqGa1x98_PCKedIaKza6Vd9QtlCUE9s'
+};
+
+// ── STATE ─────────────────────────────────────────────────────────
+let allData = { s1: [], s2: [] };
+let selectedDate = null;
+let calYear, calMonth;
+let rollChart = null, pitchChart = null;
+let tableRows = [];
+
+// ── FETCH via gviz (returns proper JSON numbers, avoids decimal-comma issue) ──
+async function fetchSheetData(sheetId) {
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
+    try {
+        const res = await fetch(url);
+        const text = await res.text();
+        // Strip JSONP wrapper: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+        const match = text.match(/setResponse\(([\s\S]*)\)/);
+        if (!match) return [];
+        const json = JSON.parse(match[1]);
+        if (json.status !== 'ok') return [];
+
+        const rows = [];
+        json.table.rows.forEach(row => {
+            const c = row.c;
+            if (!c || c.length < 4) return;
+
+            const dateRaw  = c[0]?.v;
+            const timeRaw  = c[1]?.v;
+            const pitchVal = c[2]?.v;
+            const rollVal  = c[3]?.v;
+
+            if (dateRaw == null || pitchVal == null || rollVal == null) return;
+
+            const dateNorm = normalizeDate(String(dateRaw));
+            if (!dateNorm) return;
+
+            rows.push({
+                date:  dateNorm,
+                time:  parseGvizTime(timeRaw),
+                pitch: parseFloat(pitchVal),
+                roll:  parseFloat(rollVal)
+            });
+        });
+        return rows;
+    } catch(e) {
+        console.warn('Fetch error for', sheetId, e);
+        return [];
+    }
+}
+
+// ── PARSE GVIZ TIME ───────────────────────────────────────────────
+// gviz returns time as Date(1899,11,30,H,M,S) — extract H:M:S
+function parseGvizTime(v) {
+    if (v == null) return '';
+    const s = String(v);
+    // Format: Date(1899,11,30,H,M,S)
+    const m = s.match(/Date\(\d+,\d+,\d+,(\d+),(\d+),(\d+)\)/);
+    if (m) {
+        return `${String(m[1]).padStart(2,'0')}:${String(m[2]).padStart(2,'0')}:${String(m[3]).padStart(2,'0')}`;
+    }
+    // Already a string like "01:00:00"
+    return s;
+}
+
+// ── DATE NORMALIZATION ─────────────────────────────────────────────
+// Converts any format to YYYY-MM-DD
+function normalizeDate(s) {
+    if (!s) return null;
+    s = s.trim();
+    // DD/MM/YYYY
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+        const [d,m,y] = s.split('/');
+        return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
+    // YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    // DD-MM-YYYY
+    if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(s)) {
+        const [d,m,y] = s.split('-');
+        return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
+    // Date object string from gviz e.g. "Date(2026,0,29)" 
+    const dm = s.match(/Date\((\d+),(\d+),(\d+)\)/);
+    if (dm) {
+        const y = dm[1], m = String(parseInt(dm[2])+1).padStart(2,'0'), d = dm[3].padStart(2,'0');
+        return `${y}-${m}-${d}`;
+    }
+    return null;
+}
+
+function formatDateID(ymd) {
+    if (!ymd) return '—';
+    const [y,m,d] = ymd.split('-');
+    const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+// ── CALENDAR ──────────────────────────────────────────────────────
+const MONTH_NAMES = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function buildCalendar() {
+    document.getElementById('calMonthLabel').textContent = `${MONTH_NAMES[calMonth]} ${calYear}`;
+
+    const s1Dates = new Set(allData.s1.map(r => r.date));
+    const s2Dates = new Set(allData.s2.map(r => r.date));
+
+    const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+    const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+    const grid = document.getElementById('calDays');
+    grid.innerHTML = '';
+
+    // Empty cells for offset
+    for (let i = 0; i < firstDay; i++) {
+        const blank = document.createElement('div');
+        blank.className = 'cal-day';
+        grid.appendChild(blank);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const hasS1 = s1Dates.has(dateStr);
+        const hasS2 = s2Dates.has(dateStr);
+        const hasAny = hasS1 || hasS2;
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-day';
+        if (hasAny) cell.classList.add('has-data');
+        if (dateStr === selectedDate) cell.classList.add('selected');
+        if (dateStr === todayStr) cell.classList.add('today');
+
+        cell.innerHTML = `<span>${d}</span>`;
+
+        if (hasAny) {
+            const dots = document.createElement('div');
+            dots.className = 'cal-dots';
+            if (hasS1) { const dot = document.createElement('span'); dot.className='cal-dot cal-dot-s1'; dots.appendChild(dot); }
+            if (hasS2) { const dot = document.createElement('span'); dot.className='cal-dot cal-dot-s2'; dots.appendChild(dot); }
+            cell.appendChild(dots);
+
+            cell.addEventListener('click', () => selectDate(dateStr));
+        }
+
+        grid.appendChild(cell);
+    }
+}
+
+function selectDate(dateStr) {
+    selectedDate = dateStr;
+    buildCalendar(); // re-render to show selection
+    document.getElementById('selectedBadge').textContent = formatDateID(dateStr);
+    loadDateData(dateStr);
+}
+
+// ── LOAD DATE DATA ────────────────────────────────────────────────
+function loadDateData(dateStr) {
+    const s1 = allData.s1.filter(r => r.date === dateStr);
+    const s2 = allData.s2.filter(r => r.date === dateStr);
+    const hasData = s1.length > 0 || s2.length > 0;
+
+    document.getElementById('emptyRight').style.display = hasData ? 'none' : 'block';
+    document.getElementById('statusRow').style.display = hasData ? 'flex' : 'none';
+    document.getElementById('statsGrid').style.display = hasData ? 'grid' : 'none';
+    document.getElementById('chartsSection').style.display = hasData ? 'block' : 'none';
+    document.getElementById('tableCard').style.display = hasData ? 'block' : 'none';
+
+    if (!hasData) return;
+
+    updatePills(s1, s2);
+    updateStats(s1, s2);
+    buildCharts(s1, s2);
+    buildTable(s1, s2);
+}
+
+// ── STATUS PILLS ──────────────────────────────────────────────────
+function updatePills(s1, s2) {
+    document.getElementById('pillText1').textContent = `Sensor 1: ${s1.length} data`;
+
+    const p2 = document.getElementById('pill2');
+    const i2 = document.getElementById('icon2');
+    if (s2.length > 0) {
+        p2.className = 's-pill pill-s2';
+        i2.className = 'fas fa-circle-check';
+        i2.style.fontSize = '11px';
+        document.getElementById('pillText2').textContent = `Sensor 2: ${s2.length} data`;
+    } else {
+        p2.className = 's-pill pill-na';
+        i2.className = 'fas fa-circle-xmark';
+        i2.style.fontSize = '11px';
+        document.getElementById('pillText2').textContent = 'Sensor 2: Tidak ada data';
+    }
+}
+
+// ── STATS ─────────────────────────────────────────────────────────
+function updateStats(s1, s2) {
+    const maxAbs = (arr, k) => arr.length ? Math.max(...arr.map(r => Math.abs(r[k]))) : null;
+    const fmt = v => v !== null ? v.toFixed(2) + '°' : '—';
+
+    document.getElementById('st-s1-mr').textContent = fmt(maxAbs(s1,'roll'));
+    document.getElementById('st-s1-mp').textContent = fmt(maxAbs(s1,'pitch'));
+    document.getElementById('st-s2-mr').textContent = fmt(maxAbs(s2,'roll'));
+    document.getElementById('st-s2-mp').textContent = fmt(maxAbs(s2,'pitch'));
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+function buildCharts(s1, s2) {
+    if (rollChart) rollChart.destroy();
+    if (pitchChart) pitchChart.destroy();
+
+    const labels = s1.length >= s2.length ? s1.map(r => r.time) : s2.map(r => r.time);
+
+    const opts = (yLabel) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { font: { family:'Poppins', size:11, weight:'600' }, boxWidth:12, padding:14 }
+            },
+            tooltip: {
+                callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2)}°` }
+            }
+        },
+        scales: {
+            x: {
+                ticks: { maxTicksLimit:8, font:{family:'Poppins',size:10}, color:'#a3aed1' },
+                grid: { color:'#f0f4f8' }
+            },
+            y: {
+                title: { display:true, text:yLabel, font:{family:'Poppins',size:11}, color:'#a3aed1' },
+                ticks: { font:{family:'Poppins',size:10}, color:'#a3aed1', callback: v => v.toFixed(2)+'°' },
+                grid: { color:'#f0f4f8' }
+            }
+        }
+    });
+
+    // Roll
+    const rDs = [{
+        label: 'Sensor 1 — Roll',
+        data: s1.map(r => r.roll),
+        borderColor: '#004aad', backgroundColor: 'rgba(0,74,173,0.07)',
+        fill: true, tension: 0.3, borderWidth: 2,
+        pointRadius: s1.length > 30 ? 0 : 3, pointHoverRadius: 5
+    }];
+    if (s2.length) rDs.push({
+        label: 'Sensor 2 — Roll',
+        data: s2.map(r => r.roll),
+        borderColor: '#059669', backgroundColor: 'rgba(5,150,105,0.05)',
+        fill: true, tension: 0.3, borderWidth: 2, borderDash: [5,3],
+        pointRadius: s2.length > 30 ? 0 : 3, pointHoverRadius: 5
+    });
+    rollChart = new Chart(document.getElementById('rollChart').getContext('2d'), {
+        type: 'line', data: { labels, datasets: rDs }, options: opts('Sudut Roll (°)')
+    });
+
+    // Pitch
+    const pDs = [{
+        label: 'Sensor 1 — Pitch',
+        data: s1.map(r => r.pitch),
+        borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.07)',
+        fill: true, tension: 0.3, borderWidth: 2,
+        pointRadius: s1.length > 30 ? 0 : 3, pointHoverRadius: 5
+    }];
+    if (s2.length) pDs.push({
+        label: 'Sensor 2 — Pitch',
+        data: s2.map(r => r.pitch),
+        borderColor: '#db2777', backgroundColor: 'rgba(219,39,119,0.05)',
+        fill: true, tension: 0.3, borderWidth: 2, borderDash: [5,3],
+        pointRadius: s2.length > 30 ? 0 : 3, pointHoverRadius: 5
+    });
+    pitchChart = new Chart(document.getElementById('pitchChart').getContext('2d'), {
+        type: 'line', data: { labels, datasets: pDs }, options: opts('Sudut Pitch (°)')
+    });
+}
+
+// ── TABLE ─────────────────────────────────────────────────────────
+function buildTable(s1, s2) {
+    const timeMap = {};
+    s1.forEach(r => { timeMap[r.time] = timeMap[r.time] || { time:r.time, s1:null, s2:null }; timeMap[r.time].s1 = r; });
+    s2.forEach(r => { timeMap[r.time] = timeMap[r.time] || { time:r.time, s1:null, s2:null }; timeMap[r.time].s2 = r; });
+    tableRows = Object.values(timeMap).sort((a,b) => a.time.localeCompare(b.time));
+    renderTable();
+}
+
+function renderTable() {
+    const q = document.getElementById('tableSearch').value.toLowerCase();
+    const filtered = tableRows.filter(r => r.time.toLowerCase().includes(q));
+
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+
+    if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted);font-size:13px;">Tidak ada data</td></tr>`;
+    } else {
+        filtered.forEach(row => {
+            const s1 = row.s1, s2 = row.s2;
+            const both = s1 && s2;
+            const dR = both ? (s1.roll - s2.roll) : null;
+            const dP = both ? (s1.pitch - s2.pitch) : null;
+            const fmtDelta = (v) => v === null ? `<span class="td-na">—</span>` : `<span class="${v>=0?'td-pos':'td-neg'}">${v>=0?'+':''}${v.toFixed(2)}°</span>`;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="td-time">${row.time}</td>
+                <td class="${s1?'td-s1':'td-na'}">${s1 ? s1.roll.toFixed(2)+'°' : '—'}</td>
+                <td class="${s1?'td-s1':'td-na'}">${s1 ? s1.pitch.toFixed(2)+'°' : '—'}</td>
+                <td class="${s2?'td-s2':'td-na'}">${s2 ? s2.roll.toFixed(2)+'°' : '—'}</td>
+                <td class="${s2?'td-s2':'td-na'}">${s2 ? s2.pitch.toFixed(2)+'°' : '—'}</td>
+                <td>${fmtDelta(dR)}</td>
+                <td>${fmtDelta(dP)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    document.getElementById('pgInfo').textContent =
+        filtered.length ? `Menampilkan ${filtered.length} baris` : '';
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+async function init() {
+    document.getElementById('loadingOverlay').classList.add('active');
+
+    try {
+        const [s1, s2] = await Promise.all([
+            fetchSheetData(SHEET_IDS.s1),
+            fetchSheetData(SHEET_IDS.s2)
+        ]);
+        allData.s1 = s1;
+        allData.s2 = s2;
+
+        // Init calendar to the month of the latest data
+        const allDates = [...s1, ...s2].map(r => r.date).sort();
+        const latest = allDates[allDates.length - 1];
+        if (latest) {
+            const [y,m] = latest.split('-');
+            calYear = parseInt(y); calMonth = parseInt(m)-1;
+        } else {
+            const now = new Date();
+            calYear = now.getFullYear(); calMonth = now.getMonth();
+        }
+
+        buildCalendar();
+
+        // Auto-select latest date with data
+        if (latest) selectDate(latest);
+
+    } catch(e) {
+        console.error(e);
+    }
+
+    document.getElementById('loadingOverlay').classList.remove('active');
+}
+
+// ── CALENDAR NAV ─────────────────────────────────────────────────
+document.getElementById('calPrev').onclick = () => {
+    calMonth--;
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    buildCalendar();
+};
+
+document.getElementById('calNext').onclick = () => {
+    calMonth++;
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    buildCalendar();
+};
+
+document.getElementById('tableSearch').addEventListener('input', () => { renderTable(); });
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
