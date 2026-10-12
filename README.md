@@ -65,7 +65,7 @@ Data dikirim secara real-time ke web dashboard melalui protokol MQTT, disimpan k
   │Google Sheets│      │  SD Card     │
   │ (Sensor 1)  │      │ /data_*.csv  │
   └─────────────┘      │(setiap 30min)│
-                        └──────────────┘
+                       └──────────────┘
 
   ┌──────────────┐
   │    ESP32 #2  │─────► HiveMQ Cloud ──► Web Dashboard
