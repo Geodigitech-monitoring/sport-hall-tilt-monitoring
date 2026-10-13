@@ -224,4 +224,4 @@ Mencabut layanan lama sebelum langkah 3 selesai akan memutus data dari perangkat
 
 ---
 
-*Sistem Pemantauan Pergeseran Gedung Sport Hall © 2024 — Universitas Katolik Soegijapranata*
+*Sistem Pemantauan Pergeseran Gedung Sport Hall © 2025 — Universitas Katolik Soegijapranata*
