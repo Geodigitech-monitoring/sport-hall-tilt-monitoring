@@ -1,0 +1,5 @@
+  name = "sport-hall-tilt-monitoring"
+  compatibility_date = "2026-02-18"
+
+  [assets]
+  directory = "./dist"
